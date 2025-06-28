@@ -4,3 +4,5 @@ Goal of this repo is to implement an algorithm to calculate the minimum dominati
 programming on tree decompositions of graphs.  
 
 Tree compositions are obtained by [NetworkX](https://networkx.org/) (which implements a heuristical approach using min-fill).
+
+For the algorithm implementation see `min-dominating-set.py`.
