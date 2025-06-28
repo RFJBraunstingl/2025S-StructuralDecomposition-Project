@@ -3,7 +3,7 @@ from itertools import permutations
 import networkx as nx
 from networkx.algorithms import approximation
 
-path_to_gr_file = 'samples/balaban_10cage.gr'
+path_to_gr_file = 'samples/star7.gr'
 
 
 def load_gr_file(filepath):
@@ -38,18 +38,25 @@ visited_nodes_to_statistics_set = {}
 
 
 # produce a map which holds each node (as key) and the number of unvisited neighbours (as value)
-def map_nodes_to_unvisited_neighbours(nodes, edges):
-    result_map = {}
+def map_nodes_to_neighbours(nodes, edges):
+    unvisited_neighbours_map = {}
+    visited_neighbours_map = {}
     for node in nodes:
-        result_map[node] = []
+        visited_neighbours_map[node] = []
+        unvisited_neighbours_map[node] = []
 
     for u, v in edges:
-        if u not in visited_nodes_to_statistics_set:
-            result_map[v].append(u)
-        if v not in visited_nodes_to_statistics_set:
-            result_map[u].append(v)
+        if u in visited_nodes_to_statistics_set:
+            visited_neighbours_map[v].append(u)
+        else:
+            unvisited_neighbours_map[v].append(u)
 
-    return result_map
+        if v in visited_nodes_to_statistics_set:
+            visited_neighbours_map[u].append(v)
+        else:
+            unvisited_neighbours_map[u].append(v)
+
+    return unvisited_neighbours_map, visited_neighbours_map
 
 
 def permutations(list_of_lists):
@@ -78,8 +85,8 @@ def visit_node(node, list_of_visited_neighbours):
         for permutation in permutations(list_of_visited_neighbours):
             selected_set = set()
             selected_set.add(selected_vertex)
-            for selected_vertices in permutation:
-                selected_set += selected_vertices
+            for vertex in permutation:
+                selected_set.add(vertex)
 
             current_length = len(selected_set)
             if min_selected_set_length == 0 or current_length < min_selected_set_length:
@@ -89,9 +96,8 @@ def visit_node(node, list_of_visited_neighbours):
         visited_nodes_to_statistics_set[node][selected_vertex] = min_selected_set
 
 
-
 # in the beginning, the leafs are those nodes which have count = 1 although no node has been visited yet
-node_to_unvisited_neighbour_list_map = map_nodes_to_unvisited_neighbours(decomposition.nodes, decomposition.edges)
+node_to_unvisited_neighbour_list_map, _ = map_nodes_to_neighbours(decomposition.nodes, decomposition.edges)
 for node, neighbour_list in node_to_unvisited_neighbour_list_map.items():
     if len(neighbour_list) == 1:
         # node is a leaf
@@ -100,7 +106,7 @@ for node, neighbour_list in node_to_unvisited_neighbour_list_map.items():
 # after the leafs are visited, there has to be always some node which has zero unvisited neighbours
 last_node_processed = None
 while len(visited_nodes_to_statistics_set) < len(decomposition.nodes):
-    unvisited_neighbours = map_nodes_to_unvisited_neighbours(decomposition.nodes, decomposition.edges)
+    unvisited_neighbours, visited_neighbours = map_nodes_to_neighbours(decomposition.nodes, decomposition.edges)
     for node, unvisited_neighbours_set in unvisited_neighbours.items():
         if node in visited_nodes_to_statistics_set:
             continue  # ignore nodes already visited
@@ -109,3 +115,14 @@ while len(visited_nodes_to_statistics_set) < len(decomposition.nodes):
             continue
 
         last_node_processed = node
+        visit_node(node, visited_neighbours[node])
+
+print("root node", last_node_processed)
+min_solution = None
+root_node_statistics = visited_nodes_to_statistics_set[last_node_processed]
+for root_node_vertex in root_node_statistics:
+    solution = root_node_statistics[root_node_vertex]
+    if min_solution is None or len(solution) < len(min_solution):
+        min_solution = solution
+
+print("min solution", min_solution)
