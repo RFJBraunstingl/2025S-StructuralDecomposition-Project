@@ -1,6 +1,5 @@
 import networkx as nx
 from networkx.algorithms import approximation
-from nice_tree_decomposition import make_nice_tree_decomposition
 
 path_to_gr_file = 'samples/two-levels.gr'
 
@@ -30,9 +29,6 @@ tree_width, decomposition = approximation.treewidth_min_fill_in(G)
 print("found tree decomp with width", tree_width)
 print("nodes", decomposition.nodes)
 print("edges", decomposition.edges)
-make_nice_tree_decomposition(decomposition)
-print("nice nodes", decomposition.nodes)
-print("nice edges", decomposition.edges)
 
 if len(decomposition.nodes) < 1:
     raise RuntimeError("empty decomposition encountered")
@@ -101,22 +97,30 @@ def visit_node(node, list_of_visited_neighbours):
         visited_nodes_to_statistics_set[node][selected_vertex] = min_selected_set
 
 
-# NOTE: networkx gives us root to leafs from left to right
-# => thus we can traverse the list in reverse order to go from leafs to root
-nodelist = []
-for v in decomposition.nodes:
-    nodelist.append(v)
+# in the beginning, the leafs are those nodes which have count = 1 although no node has been visited yet
+node_to_unvisited_neighbour_list_map, _ = map_nodes_to_neighbours(decomposition.nodes, decomposition.edges)
+for node, neighbour_list in node_to_unvisited_neighbour_list_map.items():
+    if len(neighbour_list) == 1:
+        # node is a leaf
+        visit_node(node, [])
 
-root_node = nodelist[0]
-nodelist = reversed(nodelist)
-for node in nodelist:
+# after the leafs are visited, there has to be always some node which has zero unvisited neighbours
+last_node_processed = None
+while len(visited_nodes_to_statistics_set) < len(decomposition.nodes):
     unvisited_neighbours, visited_neighbours = map_nodes_to_neighbours(decomposition.nodes, decomposition.edges)
-    visit_node(node, visited_neighbours[node])
+    for node, unvisited_neighbours_set in unvisited_neighbours.items():
+        if node in visited_nodes_to_statistics_set:
+            continue  # ignore nodes already visited
 
+        if len(unvisited_neighbours_set) > 1:
+            continue
 
-print("root node", root_node)
+        last_node_processed = node
+        visit_node(node, visited_neighbours[node])
+
+print("root node", last_node_processed)
 min_solution = None
-root_node_statistics = visited_nodes_to_statistics_set[root_node]
+root_node_statistics = visited_nodes_to_statistics_set[last_node_processed]
 for root_node_vertex in root_node_statistics:
     solution = root_node_statistics[root_node_vertex]
     if min_solution is None or len(solution) < len(min_solution):
