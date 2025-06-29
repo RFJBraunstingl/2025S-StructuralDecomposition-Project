@@ -1,7 +1,7 @@
 import networkx as nx
 from networkx.algorithms import approximation
 
-path_to_gr_file = 'samples/two-levels.gr'
+path_to_gr_file = 'samples/C5.gr'
 
 
 def load_gr_file(filepath):
@@ -86,8 +86,10 @@ def visit_node(node, list_of_visited_neighbours):
         for permutation in permutations(list_of_visited_neighbours):
             selected_set = set()
             selected_set.add(selected_vertex)
-            for vertex in permutation:
-                selected_set.add(vertex)
+            for i, vertex in enumerate(permutation):
+                current_neighbour = list_of_visited_neighbours[i]
+                for u in visited_nodes_to_statistics_set[current_neighbour][vertex]:
+                    selected_set.add(u)
 
             current_length = len(selected_set)
             if min_selected_set_length == 0 or current_length < min_selected_set_length:
@@ -97,14 +99,6 @@ def visit_node(node, list_of_visited_neighbours):
         visited_nodes_to_statistics_set[node][selected_vertex] = min_selected_set
 
 
-# in the beginning, the leafs are those nodes which have count = 1 although no node has been visited yet
-node_to_unvisited_neighbour_list_map, _ = map_nodes_to_neighbours(decomposition.nodes, decomposition.edges)
-for node, neighbour_list in node_to_unvisited_neighbour_list_map.items():
-    if len(neighbour_list) == 1:
-        # node is a leaf
-        visit_node(node, [])
-
-# after the leafs are visited, there has to be always some node which has zero unvisited neighbours
 last_node_processed = None
 while len(visited_nodes_to_statistics_set) < len(decomposition.nodes):
     unvisited_neighbours, visited_neighbours = map_nodes_to_neighbours(decomposition.nodes, decomposition.edges)
@@ -117,6 +111,7 @@ while len(visited_nodes_to_statistics_set) < len(decomposition.nodes):
 
         last_node_processed = node
         visit_node(node, visited_neighbours[node])
+        break
 
 print("root node", last_node_processed)
 min_solution = None
