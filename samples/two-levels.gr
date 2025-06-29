@@ -1,0 +1,12 @@
+c graph with 2 levels after tree decomposition
+p tw 9 10
+1 2
+1 6
+2 3
+6 7
+3 4
+3 5
+4 5
+7 9
+7 8
+8 9

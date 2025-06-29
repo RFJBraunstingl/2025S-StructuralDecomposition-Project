@@ -1,7 +1,8 @@
 import networkx as nx
 from networkx.algorithms import approximation
+from nice_tree_decomposition import make_nice_tree_decomposition
 
-path_to_gr_file = 'samples/balaban_10cage.gr'
+path_to_gr_file = 'samples/two-levels.gr'
 
 
 def load_gr_file(filepath):
@@ -29,6 +30,9 @@ tree_width, decomposition = approximation.treewidth_min_fill_in(G)
 print("found tree decomp with width", tree_width)
 print("nodes", decomposition.nodes)
 print("edges", decomposition.edges)
+make_nice_tree_decomposition(decomposition)
+print("nice nodes", decomposition.nodes)
+print("nice edges", decomposition.edges)
 
 if len(decomposition.nodes) < 1:
     raise RuntimeError("empty decomposition encountered")
