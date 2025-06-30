@@ -1,7 +1,7 @@
 import networkx as nx
 from networkx.algorithms import approximation
 
-path_to_gr_file = 'samples/two-levels.gr'
+path_to_gr_file = 'samples/simple2.gr'
 
 
 def load_gr_file(filepath):
