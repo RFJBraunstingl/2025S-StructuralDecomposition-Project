@@ -3,16 +3,17 @@ import sys
 
 if len(sys.argv) < 2:
     print("Usage: python min-dominating-set-v2.py <inputfile>")
-    # exit(1)
 
+path_to_input = sys.argv[1]
 # path_to_input = 'samples/two-levels.gr'
 # path_to_input = 'samples/star7.gr'
 # path_to_input = 'samples/C5.gr'
-path_to_input = 'samples/C4.gr'
-# path_to_input = sys.argv[1]
+# path_to_input = 'samples/C4.gr'
+# path_to_input = 'samples/C3.gr'
 
 if not path_to_input:
     exit(1)
+
 
 class Graph:
     adjacency_list = {}
@@ -415,7 +416,8 @@ def generate_colorings_recursively(l):
 def generate_colorings(bag):
     # a bag here is a set of vertices
     if len(bag) == 0:
-        return []
+        yield ""
+        return
 
     vertices = sorted([x for x in bag])
     for coloring in generate_colorings_recursively(vertices):
@@ -431,7 +433,7 @@ def vertex_has_color(coloring, v, color):
 
 
 def coloring_with_replaced_vertex_color(coloring, v, new_color):
-    filtered_list = [x for x in coloring.split(",") if not x.startswith(f"{v}:")]
+    filtered_list = [x for x in coloring.split(",") if x and not x.startswith(f"{v}:")]
     replacement = [f"{v}:{new_color}"]
     new_list = filtered_list + replacement
     new_list.sort(key=lambda x: int(x.split(':')[0]))
@@ -540,5 +542,5 @@ def get_colorings_for_node(node):
         raise RuntimeError("unhandled node type " + str(node.node_type))
 
 
-sizes = [x[1] for x in get_colorings_for_node(nice_tree_decomposition.child_nodes[0]) if ':2' not in x[0]]
-print("min dominating set size is: " + str(min(sizes)))
+sizes = [x[1] for x in get_colorings_for_node(nice_tree_decomposition) if ':2' not in x[0]]
+print("min dominating set size is: " + (str(min(sizes)) if len(sizes) > 0 else "N/A"))
