@@ -1,3 +1,4 @@
+import math
 
 path_to_input = 'samples/C5.gr'
 path_to_input = 'samples/balaban_10cage.gr'
@@ -202,6 +203,7 @@ FORGET_NODE = "FORGET"
 LEAF_NODE = "LEAF"
 INTRODUCE_EDGE_NODE = "INTRODUCE_EDGE"
 
+
 class NiceTreeDecompositionNode:
     node_type: str = ""
     child_nodes = []
@@ -210,8 +212,10 @@ class NiceTreeDecompositionNode:
     def __str__(self):
         meta = " "
         if self.node_type == INTRODUCE_EDGE_NODE:
-            meta = f" ({self.introduced_edge}) "
-        return f"{self.node_type}{meta}{str(self.bag)}: [{', '.join([str(n) for n in self.child_nodes])}]"
+            meta = f"({self.introduced_edge})"
+        else:
+            meta = f"{str(self.bag)}"
+        return f"{self.node_type} {meta}: [{', '.join([str(n) for n in self.child_nodes])}]"
 
     def add_children(self, children, tree_decomposition_graph: Graph):
         if len(children) == 0:
@@ -378,3 +382,73 @@ print("collected edges: ", ", ".join([str(x) for x in edges]))
 print("inserting introduce edge nodes")
 nice_tree_decomposition.add_introduce_edge_nodes(edges)
 print(nice_tree_decomposition)
+
+# vertex colors
+BLACK = 0
+WHITE = 1
+GREY = 2
+
+
+# generate all 3^|X_t| colorings of a bag X_t
+# we encode colorings as strings like "1:0,2:2,3:1"
+# ...where 1,2,3 are sorted vertices and
+# ...and 0,2,1 are the colors of the nodes
+def generate_colorings_recursively(l):
+    if len(l) == 0:
+        yield []
+        return
+
+    for recurse in generate_colorings_recursively(l[1:]):
+        yield [f"{l[0]}:0"] + recurse
+        yield [f"{l[0]}:1"] + recurse
+        yield [f"{l[0]}:2"] + recurse
+
+
+def generate_colorings(bag):
+    # a bag here is a set of vertices
+    vertices = [x for x in bag].sort()
+    for coloring in generate_colorings_recursively(vertices):
+        yield ",".join(coloring)
+
+
+def coloring_without_vertex(coloring, v):
+    return ",".join([x for x in coloring.split(",") if not x.startswith(f"{v}:")])
+
+
+def vertex_has_color(coloring, v, color):
+    return f"{v}:{color}" in coloring.split(",")
+
+
+print("start algorithm")
+coloring_to_c_map = {}
+
+
+def get_colorings_for_node(node):
+    for child in node.get_children():
+        get_colorings_for_node(child)
+
+    colorings_for_this_node = []
+    if node.node_type == LEAF_NODE:
+        # for leaf node return empty coloring and c = 0
+        coloring_to_c_map[""] = 0
+
+    elif node.node_type == INTRODUCE_NODE:
+        introduced_v = node.child_nodes[0].bag.difference(node.bag)
+        for coloring in generate_colorings(node.bag):
+            colorings_for_this_node.append(coloring)
+            if vertex_has_color(coloring, introduced_v, WHITE):
+                coloring_to_c_map[coloring] = math.inf
+            elif vertex_has_color(coloring, introduced_v, GREY):
+                coloring_to_c_map[coloring] = coloring_to_c_map[coloring_without_vertex(coloring, introduced_v)]
+            else:  # black
+                coloring_to_c_map[coloring] = 1 + coloring_to_c_map[coloring_without_vertex(coloring, introduced_v)]
+
+    elif node.node_type == INTRODUCE_EDGE_NODE:
+        introduced_edge = [x for x in node.introduced_edge]
+        u = introduced_edge[0]
+        v = introduced_edge[1]
+        for coloring in generate_colorings(node.bag):
+            if vertex_has_color(coloring, u, BLACK) and vertex_has_color(coloring, v, WHITE):
+                coloring_to_c_map[coloring] = coloring_to_c_map[]
+
+traverse_depth_first(nice_tree_decomposition)
