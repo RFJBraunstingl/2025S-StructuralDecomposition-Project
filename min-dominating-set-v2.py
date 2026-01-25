@@ -200,6 +200,7 @@ JOIN_NODE = "JOIN"
 INTRODUCE_NODE = "INTRODUCE"
 FORGET_NODE = "FORGET"
 LEAF_NODE = "LEAF"
+INTRODUCE_EDGE_NODE = "INTRODUCE_EDGE"
 
 class NiceTreeDecompositionNode:
     node_type: str = ""
@@ -207,7 +208,10 @@ class NiceTreeDecompositionNode:
     bag = frozenset()
 
     def __str__(self):
-        return f"{self.node_type} {str(self.bag)}: [{', '.join([str(n) for n in self.child_nodes])}]"
+        meta = " "
+        if self.node_type == INTRODUCE_EDGE_NODE:
+            meta = f" ({self.introduced_edge}) "
+        return f"{self.node_type}{meta}{str(self.bag)}: [{', '.join([str(n) for n in self.child_nodes])}]"
 
     def add_children(self, children, tree_decomposition_graph: Graph):
         if len(children) == 0:
@@ -309,6 +313,33 @@ class NiceTreeDecompositionNode:
         node_to_introduce.child_nodes.append(child)
         self.child_nodes.append(node_to_introduce)
 
+    @staticmethod
+    def get_edges_covered_by_bag(edge_collection, bag):
+        result = []
+        for edge in edge_collection:
+            if edge.issubset(bag):
+                result.append(edge)
+
+        return result
+
+    def add_introduce_edge_nodes(self, edge_collection):
+        for edge in NiceTreeDecompositionNode.get_edges_covered_by_bag(edge_collection, self.bag):
+            # transform this node to introduce edge and add a copy as child
+            replacement_node = NiceTreeDecompositionNode()
+            replacement_node.node_type = self.node_type
+            replacement_node.bag = self.bag
+            replacement_node.child_nodes = self.child_nodes
+            if hasattr(self, 'introduced_edge'):
+                replacement_node.introduced_edge = self.introduced_edge
+
+            self.child_nodes = [replacement_node]
+            self.node_type = INTRODUCE_EDGE_NODE
+            self.introduced_edge = edge
+            edge_collection.remove(edge)
+
+        for child in self.child_nodes:
+            child.add_introduce_edge_nodes(edge_collection)
+
 
 class NiceTreeDecomposition:
     root_node: NiceTreeDecompositionNode
@@ -334,4 +365,16 @@ class NiceTreeDecomposition:
 
 
 nice_tree_decomposition = NiceTreeDecomposition.create_from_tree_decomposition(tree_decomposition_graph)
+print(nice_tree_decomposition)
+
+print("collecting edges for graph " + str(graph.adjacency_list))
+edges = set()
+adjacency_list = graph.adjacency_list
+for u in adjacency_list:
+    for v in adjacency_list[u]:
+        edges.add(frozenset([u,v]))
+
+print("collected edges: ", ", ".join([str(x) for x in edges]))
+print("inserting introduce edge nodes")
+nice_tree_decomposition.add_introduce_edge_nodes(edges)
 print(nice_tree_decomposition)
