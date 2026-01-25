@@ -1,9 +1,18 @@
 import math
+import sys
 
-path_to_input = 'samples/C5.gr'
-path_to_input = 'samples/two-levels.gr'
-path_to_input = 'samples/star7.gr'
+if len(sys.argv) < 2:
+    print("Usage: python min-dominating-set-v2.py <inputfile>")
+    # exit(1)
 
+# path_to_input = 'samples/two-levels.gr'
+# path_to_input = 'samples/star7.gr'
+# path_to_input = 'samples/C5.gr'
+path_to_input = 'samples/C4.gr'
+# path_to_input = sys.argv[1]
+
+if not path_to_input:
+    exit(1)
 
 class Graph:
     adjacency_list = {}
@@ -398,9 +407,9 @@ def generate_colorings_recursively(l):
         return
 
     for recurse in generate_colorings_recursively(l[1:]):
-        yield [f"{l[0]}:0"] + recurse
-        yield [f"{l[0]}:1"] + recurse
-        yield [f"{l[0]}:2"] + recurse
+        yield [f"{l[0]}:{BLACK}"] + recurse
+        yield [f"{l[0]}:{WHITE}"] + recurse
+        yield [f"{l[0]}:{GREY}"] + recurse
 
 
 def generate_colorings(bag):
@@ -531,5 +540,5 @@ def get_colorings_for_node(node):
         raise RuntimeError("unhandled node type " + str(node.node_type))
 
 
-sizes = [x[1] for x in get_colorings_for_node(nice_tree_decomposition.child_nodes[0])]
+sizes = [x[1] for x in get_colorings_for_node(nice_tree_decomposition.child_nodes[0]) if ':2' not in x[0]]
 print("min dominating set size is: " + str(min(sizes)))
