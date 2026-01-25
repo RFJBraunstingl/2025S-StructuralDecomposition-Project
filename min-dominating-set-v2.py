@@ -406,6 +406,9 @@ def generate_colorings_recursively(l):
 
 def generate_colorings(bag):
     # a bag here is a set of vertices
+    if len(bag) == 0:
+        return []
+
     vertices = [x for x in bag].sort()
     for coloring in generate_colorings_recursively(vertices):
         yield ",".join(coloring)
@@ -423,6 +426,43 @@ def coloring_with_replaced_vertex_color(coloring, v, new_color):
     return ",".join(
         [x for x in coloring.split(",") if not x.startswith(f"{v}:")] + [f"{v}:{new_color}"]
     )
+
+
+def is_consistent(f1, f2, f):
+    f_pairs = [x.split(":") for x in f.split(",")]
+
+    f1_dict = {}
+    for v, c in [x.split(":") for x in f1.split(",")]:
+        f1_dict[v] = int(c)
+
+    f2_dict = {}
+    for v, c in [x.split(":") for x in f2.split(",")]:
+        f2_dict[v] = int(c)
+
+    for v, c in f_pairs:
+        c = int(c)
+        if c == BLACK:
+            if f1_dict[v] != BLACK or f2_dict[v] != BLACK:
+                return False
+        elif c == WHITE:
+            if not ((f1_dict[v] == GREY and f2_dict[v] == WHITE) or (f1_dict[v] == WHITE and f2_dict[v] == GREY)):
+                return False
+        else:
+            if f1_dict[v] != GREY or f2_dict[v] != GREY:
+                return False
+
+    return True
+
+
+def get_consistent_colorings(coloring, all_f1, all_f2):
+    for f1 in all_f1:
+        for f2 in all_f2:
+            if is_consistent(coloring, f1, f2):
+                yield f1, all_f1[f1], f2, all_f2[f2]
+
+
+def count_vertices_of_color(coloring, color):
+    return len([x for x in coloring.split(",") if x.endswith(f":{color}")])
 
 
 print("start algorithm")
@@ -458,6 +498,33 @@ def get_colorings_for_node(node):
             else:
                 yield coloring, child_colorings[coloring]
 
+    elif node.node_type == FORGET_NODE:
+        w = node.bag.difference(node.child_nodes[0].bag)
+        for coloring in generate_colorings(node.bag):
+            coloring_black_w = coloring_with_replaced_vertex_color(coloring, w, BLACK)
+            c_for_black_w = child_colorings[coloring_black_w]
+            coloring_white_w = coloring_with_replaced_vertex_color(coloring, w, WHITE)
+            c_for_white_w = child_colorings[coloring_white_w]
+            minimum = min(c_for_black_w, c_for_white_w)
+            yield coloring, minimum
+
+    elif node.node_type == JOIN_NODE:
+        all_f1 = child_colorings
+        all_f2 = {}
+        for x in get_colorings_for_node(node.child_nodes[1]):
+            all_f2[x[0]] = x[1]
+
+        for coloring in generate_colorings(node.bag):
+            minimum = math.inf
+            for f1, c1, f2, c2 in get_consistent_colorings(coloring, all_f1, all_f2):
+                value = c1 + c2 - count_vertices_of_color(coloring, BLACK)
+                if value < minimum:
+                    minimum = value
+
+            yield coloring, minimum
+
+    raise RuntimeError("unhandled node type " + str(node.node_type))
 
 
-get_colorings_for_node(nice_tree_decomposition)
+for c in get_colorings_for_node(nice_tree_decomposition.child_nodes[0]):
+    print(c)
