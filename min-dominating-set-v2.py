@@ -248,7 +248,7 @@ class NiceTreeDecompositionNode:
             if child.bag == self.bag:
                 continue
 
-            print("ensure bag diff from ", child.bag, " to ", self.bag)
+            # print("ensure bag diff from ", child.bag, " to ", self.bag)
             # generate a sequence of bags with diff 1
             to_be_forgotten = child.bag.difference(self.bag)
             to_be_introduced = self.bag.difference(child.bag)
@@ -256,14 +256,31 @@ class NiceTreeDecompositionNode:
             current_bag = set(child.bag)
             for f in to_be_forgotten:
                 current_bag.remove(f)
-                sequence.append(frozenset(current_bag))
+                forget_node = NiceTreeDecompositionNode()
+                forget_node.node_type = FORGET_NODE
+                forget_node.bag = frozenset(current_bag)
+                forget_node.forgotten_vertex = f
+                sequence.append(forget_node)
             for i in to_be_introduced:
                 current_bag.add(i)
-                sequence.append(frozenset(current_bag))
+                introduce_node = NiceTreeDecompositionNode()
+                introduce_node.node_type = INTRODUCE_NODE
+                introduce_node.bag = frozenset(current_bag)
+                introduce_node.introduced_vertex = i
+                sequence.append(introduce_node)
 
             # we don't need the last entry since it must be equivalent to self.bag
             sequence = sequence[:-1]
-            print("sequence:", sequence)
+            # print("sequence:", ", ".join([str(x) for x in sequence]))
+
+            if len(sequence) > 0:
+                current_child = child
+                for node in sequence:
+                    node.child_nodes = [current_child]
+                    current_child = node
+
+                self.child_nodes.remove(child)
+                self.child_nodes.append(current_child)
 
     def insert_before_child(self, child, node_to_introduce):
         if child in self.child_nodes:
