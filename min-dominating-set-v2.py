@@ -243,65 +243,27 @@ class NiceTreeDecompositionNode:
 
     def ensure_bag_diff_one(self):
         for child in self.child_nodes:
-            result_root = None
-            result_leaf = None
-
-            to_be_forgotten = child.bag.difference(self.bag)
-            if len(to_be_forgotten) > 0:
-                current_set = set()
-                forget_subtree_root = None
-                forget_subtree_leave = None
-                for to_forget in to_be_forgotten:
-                    current_set.add(to_forget)
-                    nodes_left = to_be_forgotten.difference(current_set)
-                    forget_node = NiceTreeDecompositionNode()
-                    forget_node.bag = frozenset(nodes_left)
-                    forget_node.node_type = FORGET_NODE
-
-                    if forget_subtree_leave is None:
-                        forget_subtree_leave = forget_node
-
-                    if forget_subtree_root is not None:
-                        forget_node.child_nodes = [forget_subtree_root]
-
-                    forget_subtree_root = forget_node
-
-                result_root = forget_subtree_root
-                result_leaf = forget_subtree_leave
-
-            to_be_introduced = self.bag.difference(child.bag)
-            if len(to_be_introduced) > 0:
-                current_set = set()
-                introduce_subtree_root = None
-                introduce_subtree_leave = None
-                for to_introduce in to_be_introduced:
-                    current_set.add(to_introduce)
-                    nodes_left = frozenset(current_set).union(child.bag)
-                    introduce_node = NiceTreeDecompositionNode()
-                    introduce_node.bag = nodes_left
-                    introduce_node.node_type = INTRODUCE_NODE
-
-                    if introduce_subtree_leave is None:
-                        introduce_subtree_leave = introduce_node
-
-                    if introduce_subtree_root is not None:
-                        introduce_node.child_nodes = [introduce_subtree_root]
-
-                    introduce_subtree_root = introduce_node
-
-                if result_root is not None:
-                    introduce_subtree_leave.child_nodes = [result_root]
-                    result_root = introduce_subtree_root
-                else:
-                    result_root = introduce_subtree_leave
-                    result_leaf = introduce_subtree_leave
-
-            if result_root is not None:
-                self.child_nodes.remove(child)
-                self.child_nodes.append(result_root)
-                result_leaf.child_nodes = [child]
-
             child.ensure_bag_diff_one()
+
+            if child.bag == self.bag:
+                continue
+
+            print("ensure bag diff from ", child.bag, " to ", self.bag)
+            # generate a sequence of bags with diff 1
+            to_be_forgotten = child.bag.difference(self.bag)
+            to_be_introduced = self.bag.difference(child.bag)
+            sequence = []
+            current_bag = set(child.bag)
+            for f in to_be_forgotten:
+                current_bag.remove(f)
+                sequence.append(frozenset(current_bag))
+            for i in to_be_introduced:
+                current_bag.add(i)
+                sequence.append(frozenset(current_bag))
+
+            # we don't need the last entry since it must be equivalent to self.bag
+            sequence = sequence[:-1]
+            print("sequence:", sequence)
 
     def insert_before_child(self, child, node_to_introduce):
         if child in self.child_nodes:
