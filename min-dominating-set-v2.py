@@ -257,14 +257,12 @@ class NiceTreeDecompositionNode:
             for f in to_be_forgotten:
                 current_bag.remove(f)
                 forget_node = NiceTreeDecompositionNode()
-                forget_node.node_type = FORGET_NODE
                 forget_node.bag = frozenset(current_bag)
                 forget_node.forgotten_vertex = f
                 sequence.append(forget_node)
             for i in to_be_introduced:
                 current_bag.add(i)
                 introduce_node = NiceTreeDecompositionNode()
-                introduce_node.node_type = INTRODUCE_NODE
                 introduce_node.bag = frozenset(current_bag)
                 introduce_node.introduced_vertex = i
                 sequence.append(introduce_node)
@@ -281,6 +279,28 @@ class NiceTreeDecompositionNode:
 
                 self.child_nodes.remove(child)
                 self.child_nodes.append(current_child)
+
+    def ensure_consistent_node_type(self):
+        for child in self.child_nodes:
+            child.ensure_consistent_node_type()
+
+        if len(self.child_nodes) > 2:
+            raise RuntimeError("nodes must have exactly 1 or exactly 2 children")
+
+        if len(self.child_nodes) == 2:
+            if self.bag != self.child_nodes[0].bag or self.bag != self.child_nodes[1].bag:
+                raise RuntimeError("nodes with 2 children must have equivalent bags")
+
+            # nodes with 2 children are join nodes
+            self.node_type = JOIN_NODE
+
+        elif len(self.child_nodes) == 1:
+            # nodes with 1 child which have more entries in the bag are introduce nodes
+            if len(self.bag) > len(self.child_nodes[0].bag):
+                self.node_type = INTRODUCE_NODE
+            # nodes with 1 child which have less entries in the bag are forget nodes
+            elif len(self.bag) < len(self.child_nodes[0].bag):
+                self.node_type = FORGET_NODE
 
     def insert_before_child(self, child, node_to_introduce):
         if child in self.child_nodes:
@@ -306,6 +326,9 @@ class NiceTreeDecomposition:
 
         print("inserting introduce/forget nodes...")
         root_node.ensure_bag_diff_one()
+
+        print("cleanup node types")
+        root_node.ensure_consistent_node_type()
 
         return root_node
 
