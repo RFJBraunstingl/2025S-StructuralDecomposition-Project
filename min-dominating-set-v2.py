@@ -419,36 +419,45 @@ def vertex_has_color(coloring, v, color):
     return f"{v}:{color}" in coloring.split(",")
 
 
+def coloring_with_replaced_vertex_color(coloring, v, new_color):
+    return ",".join(
+        [x for x in coloring.split(",") if not x.startswith(f"{v}:")] + [f"{v}:{new_color}"]
+    )
+
+
 print("start algorithm")
-coloring_to_c_map = {}
-
-
 def get_colorings_for_node(node):
-    for child in node.get_children():
-        get_colorings_for_node(child)
-
-    colorings_for_this_node = []
     if node.node_type == LEAF_NODE:
-        # for leaf node return empty coloring and c = 0
-        coloring_to_c_map[""] = 0
+        return [("", 0)]
 
-    elif node.node_type == INTRODUCE_NODE:
+    child_colorings = {}
+    for x in get_colorings_for_node(node.child_nodes[0]):
+        child_colorings[x[0]] = x[1]
+
+    if node.node_type == INTRODUCE_NODE:
         introduced_v = node.child_nodes[0].bag.difference(node.bag)
         for coloring in generate_colorings(node.bag):
-            colorings_for_this_node.append(coloring)
             if vertex_has_color(coloring, introduced_v, WHITE):
-                coloring_to_c_map[coloring] = math.inf
+                yield coloring, math.inf
             elif vertex_has_color(coloring, introduced_v, GREY):
-                coloring_to_c_map[coloring] = coloring_to_c_map[coloring_without_vertex(coloring, introduced_v)]
+                yield coloring, child_colorings[coloring_without_vertex(coloring, introduced_v)]
             else:  # black
-                coloring_to_c_map[coloring] = 1 + coloring_to_c_map[coloring_without_vertex(coloring, introduced_v)]
+                yield coloring, 1 + child_colorings[coloring_without_vertex(coloring, introduced_v)]
 
     elif node.node_type == INTRODUCE_EDGE_NODE:
-        introduced_edge = [x for x in node.introduced_edge]
+        introduced_edge = node.introduced_edge
         u = introduced_edge[0]
         v = introduced_edge[1]
         for coloring in generate_colorings(node.bag):
             if vertex_has_color(coloring, u, BLACK) and vertex_has_color(coloring, v, WHITE):
-                coloring_to_c_map[coloring] = coloring_to_c_map[]
+                transformed_coloring = coloring_with_replaced_vertex_color(coloring, v, GREY)
+                yield coloring, child_colorings[transformed_coloring]
+            elif vertex_has_color(coloring, u, WHITE) and vertex_has_color(coloring, v, BLACK):
+                transformed_coloring = coloring_with_replaced_vertex_color(coloring, u, GREY)
+                yield coloring, child_colorings[transformed_coloring]
+            else:
+                yield coloring, child_colorings[coloring]
 
-traverse_depth_first(nice_tree_decomposition)
+
+
+get_colorings_for_node(nice_tree_decomposition)
