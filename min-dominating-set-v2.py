@@ -1,9 +1,8 @@
 import math
 
 path_to_input = 'samples/C5.gr'
-path_to_input = 'samples/balaban_10cage.gr'
-path_to_input = 'samples/star7.gr'
 path_to_input = 'samples/two-levels.gr'
+path_to_input = 'samples/star7.gr'
 
 
 class Graph:
@@ -409,7 +408,7 @@ def generate_colorings(bag):
     if len(bag) == 0:
         return []
 
-    vertices = [x for x in bag].sort()
+    vertices = sorted([x for x in bag])
     for coloring in generate_colorings_recursively(vertices):
         yield ",".join(coloring)
 
@@ -423,9 +422,11 @@ def vertex_has_color(coloring, v, color):
 
 
 def coloring_with_replaced_vertex_color(coloring, v, new_color):
-    return ",".join(
-        [x for x in coloring.split(",") if not x.startswith(f"{v}:")] + [f"{v}:{new_color}"]
-    )
+    filtered_list = [x for x in coloring.split(",") if not x.startswith(f"{v}:")]
+    replacement = [f"{v}:{new_color}"]
+    new_list = filtered_list + replacement
+    new_list.sort(key=lambda x: int(x.split(':')[0]))
+    return ",".join(new_list)
 
 
 def is_consistent(f1, f2, f):
@@ -466,16 +467,19 @@ def count_vertices_of_color(coloring, color):
 
 
 print("start algorithm")
+
+
 def get_colorings_for_node(node):
     if node.node_type == LEAF_NODE:
-        return [("", 0)]
+        yield "", 0
+        return
 
     child_colorings = {}
     for x in get_colorings_for_node(node.child_nodes[0]):
         child_colorings[x[0]] = x[1]
 
     if node.node_type == INTRODUCE_NODE:
-        introduced_v = node.child_nodes[0].bag.difference(node.bag)
+        introduced_v = [x for x in node.bag.difference(node.child_nodes[0].bag)][0]
         for coloring in generate_colorings(node.bag):
             if vertex_has_color(coloring, introduced_v, WHITE):
                 yield coloring, math.inf
@@ -485,7 +489,7 @@ def get_colorings_for_node(node):
                 yield coloring, 1 + child_colorings[coloring_without_vertex(coloring, introduced_v)]
 
     elif node.node_type == INTRODUCE_EDGE_NODE:
-        introduced_edge = node.introduced_edge
+        introduced_edge = [x for x in node.introduced_edge]
         u = introduced_edge[0]
         v = introduced_edge[1]
         for coloring in generate_colorings(node.bag):
@@ -499,7 +503,7 @@ def get_colorings_for_node(node):
                 yield coloring, child_colorings[coloring]
 
     elif node.node_type == FORGET_NODE:
-        w = node.bag.difference(node.child_nodes[0].bag)
+        w = [x for x in node.child_nodes[0].bag.difference(node.bag)][0]
         for coloring in generate_colorings(node.bag):
             coloring_black_w = coloring_with_replaced_vertex_color(coloring, w, BLACK)
             c_for_black_w = child_colorings[coloring_black_w]
@@ -523,8 +527,9 @@ def get_colorings_for_node(node):
 
             yield coloring, minimum
 
-    raise RuntimeError("unhandled node type " + str(node.node_type))
+    else:
+        raise RuntimeError("unhandled node type " + str(node.node_type))
 
 
-for c in get_colorings_for_node(nice_tree_decomposition.child_nodes[0]):
-    print(c)
+sizes = [x[1] for x in get_colorings_for_node(nice_tree_decomposition.child_nodes[0])]
+print("min dominating set size is: " + str(min(sizes)))
