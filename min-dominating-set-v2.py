@@ -542,5 +542,5 @@ def get_colorings_for_node(node):
         raise RuntimeError("unhandled node type " + str(node.node_type))
 
 
-sizes = [x[1] for x in get_colorings_for_node(nice_tree_decomposition) if ':2' not in x[0]]
+sizes = [x[1] for x in get_colorings_for_node(nice_tree_decomposition) if f':{GREY}' not in x[0]]
 print("min dominating set size is: " + (str(min(sizes)) if len(sizes) > 0 else "N/A"))
