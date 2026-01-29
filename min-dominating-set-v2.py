@@ -440,7 +440,7 @@ def coloring_with_replaced_vertex_color(coloring, v, new_color):
     return ",".join(new_list)
 
 
-def is_consistent(f1, f2, f):
+def is_consistent(f, f1, f2):
     f_pairs = [x.split(":") for x in f.split(",")]
 
     f1_dict = {}
@@ -542,5 +542,8 @@ def get_colorings_for_node(node):
         raise RuntimeError("unhandled node type " + str(node.node_type))
 
 
-sizes = [x[1] for x in get_colorings_for_node(nice_tree_decomposition) if f':{GREY}' not in x[0]]
+colorings = get_colorings_for_node(nice_tree_decomposition)
+sizes = [x[1] for x in colorings if f':{GREY}' not in x[0]]
+print([c for c in colorings])
+print(sizes)
 print("min dominating set size is: " + (str(min(sizes)) if len(sizes) > 0 else "N/A"))
